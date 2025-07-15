@@ -1,0 +1,199 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct BookRecord {
+    char name[50];
+    char contact[20];
+    char address[100];
+    char bookTitle[50];
+    char bookAuthor[50];
+    char edition[10];
+    char condition[20];
+};
+
+// File path
+#define FILE_NAME "book_records.txt"
+
+// Function declarations
+void addRecord();
+void deleteRecord();
+void updateRecord();
+void searchBook();
+void displayAll();
+
+int main() {
+    int choice;
+    while (1) {
+        printf("\n--- Book Donation System ---\n");
+        printf("1. Add Donor/Receiver Record\n");
+        printf("2. Delete Record\n");
+        printf("3. Update Record\n");
+        printf("4. Search Book (by Author or Title)\n");
+        printf("5. Display All Records\n");
+        printf("6. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // To consume newline
+
+        switch (choice) {
+            case 1: addRecord(); break;
+            case 2: deleteRecord(); break;
+            case 3: updateRecord(); break;
+            case 4: searchBook(); break;
+            case 5: displayAll(); break;
+            case 6: exit(0);
+            default: printf("Invalid choice! Please try again.\n");
+        }
+    }
+    return 0;
+}
+
+void addRecord() {
+    struct BookRecord rec;
+    FILE *fp = fopen(FILE_NAME, "a");
+
+    printf("Enter name: ");
+    fgets(rec.name, 50, stdin); strtok(rec.name, "\n");
+    printf("Enter contact: ");
+    fgets(rec.contact, 20, stdin); strtok(rec.contact, "\n");
+    printf("Enter address: ");
+    fgets(rec.address, 100, stdin); strtok(rec.address, "\n");
+    printf("Enter book title: ");
+    fgets(rec.bookTitle, 50, stdin); strtok(rec.bookTitle, "\n");
+    printf("Enter book author: ");
+    fgets(rec.bookAuthor, 50, stdin); strtok(rec.bookAuthor, "\n");
+    printf("Enter edition: ");
+    fgets(rec.edition, 10, stdin); strtok(rec.edition, "\n");
+    printf("Enter condition: ");
+    fgets(rec.condition, 20, stdin); strtok(rec.condition, "\n");
+
+    fwrite(&rec, sizeof(rec), 1, fp);
+    fclose(fp);
+
+    printf("Record added successfully!\n");
+}
+
+void displayAll() {
+    struct BookRecord rec;
+    FILE *fp = fopen(FILE_NAME, "r");
+
+    if (!fp) {
+        printf("No records found.\n");
+        return;
+    }
+
+    printf("\n--- All Donor/Receiver Records ---\n");
+    while (fread(&rec, sizeof(rec), 1, fp)) {
+        printf("\nName: %s\nContact: %s\nAddress: %s\n", rec.name, rec.contact, rec.address);
+        printf("Book Title: %s\nAuthor: %s\nEdition: %s\nCondition: %s\n",
+               rec.bookTitle, rec.bookAuthor, rec.edition, rec.condition);
+    }
+    fclose(fp);
+}
+
+void deleteRecord() {
+    char name[50];
+    struct BookRecord rec;
+    FILE *fp = fopen(FILE_NAME, "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    if (!fp || !temp) {
+        printf("File error.\n");
+        return;
+    }
+
+    printf("Enter name to delete: ");
+    fgets(name, 50, stdin); strtok(name, "\n");
+
+    int found = 0;
+    while (fread(&rec, sizeof(rec), 1, fp)) {
+        if (strcmp(rec.name, name) != 0) {
+            fwrite(&rec, sizeof(rec), 1, temp);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+    remove(FILE_NAME);
+    rename("temp.txt", FILE_NAME);
+
+    if (found)
+        printf("Record deleted successfully.\n");
+    else
+        printf("Record not found.\n");
+}
+
+void updateRecord() {
+    char name[50];
+    struct BookRecord rec;
+    FILE *fp = fopen(FILE_NAME, "r+");
+    int found = 0;
+
+    if (!fp) {
+        printf("File not found.\n");
+        return;
+    }
+
+    printf("Enter name to update: ");
+    fgets(name, 50, stdin); strtok(name, "\n");
+
+    while (fread(&rec, sizeof(rec), 1, fp)) {
+        if (strcmp(rec.name, name) == 0) {
+            printf("Enter new contact: ");
+            fgets(rec.contact, 20, stdin); strtok(rec.contact, "\n");
+            printf("Enter new address: ");
+            fgets(rec.address, 100, stdin); strtok(rec.address, "\n");
+            printf("Enter new book title: ");
+            fgets(rec.bookTitle, 50, stdin); strtok(rec.bookTitle, "\n");
+            printf("Enter new book author: ");
+            fgets(rec.bookAuthor, 50, stdin); strtok(rec.bookAuthor, "\n");
+            printf("Enter new edition: ");
+            fgets(rec.edition, 10, stdin); strtok(rec.edition, "\n");
+            printf("Enter new condition: ");
+            fgets(rec.condition, 20, stdin); strtok(rec.condition, "\n");
+
+            fseek(fp, -sizeof(rec), SEEK_CUR);
+            fwrite(&rec, sizeof(rec), 1, fp);
+            found = 1;
+            break;
+        }
+    }
+
+    fclose(fp);
+    if (found)
+        printf("Record updated successfully.\n");
+    else
+        printf("Record not found.\n");
+}
+
+void searchBook() {
+    char query[50];
+    struct BookRecord rec;
+    FILE *fp = fopen(FILE_NAME, "r");
+
+    if (!fp) {
+        printf("No records found.\n");
+        return;
+    }
+
+    printf("Enter book title or author to search: ");
+    fgets(query, 50, stdin); strtok(query, "\n");
+
+    int found = 0;
+    while (fread(&rec, sizeof(rec), 1, fp)) {
+        if (strstr(rec.bookTitle, query) || strstr(rec.bookAuthor, query)) {
+            printf("\nName: %s\nContact: %s\nAddress: %s\n", rec.name, rec.contact, rec.address);
+            printf("Book Title: %s\nAuthor: %s\nEdition: %s\nCondition: %s\n",
+                   rec.bookTitle, rec.bookAuthor, rec.edition, rec.condition);
+            found = 1;
+        }
+    }
+
+    fclose(fp);
+    if (!found)
+        printf("No matching records found.\n");
+}
+
